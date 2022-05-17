@@ -1,4 +1,7 @@
 import os
+import instascrape as insta
+import re
+import time
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import messagebox
@@ -24,7 +27,7 @@ def getUserSession():
 
 # when url button clicked, show messagebox
 def btnURL():
-    messagebox.showinfo('Instagram URL', "Paste Here The Reel/IGTV Video URL... Get The Full URL Using The 'Copy Link' Button")
+    messagebox.showinfo('Instagram URL', "Paste Here The Reel/IGTV Video URL...")
 
 # when session button clicked, show messagebox
 def btnSession():
@@ -39,7 +42,7 @@ def btnFolder():
 
 # when downlaod button clicked
 def btnDownload():
-    print("Download Started")
+  
 
     myFilePath = os.getcwd() + "/assets/mySessionID.txt"
     
@@ -52,7 +55,88 @@ def btnDownload():
         fNew = open(myFilePath,"w")
         fNew.write(entrySession.get())
         fNew.close()  
+        
+        #print("Download Started")
+
+        # get values out of entries and assign them variables
+
+        SESSIONID = entrySession.get().strip()
+        DOWNLOAD_LOCATION = entryFolder.get().strip()
+        VIDEO_URL = entryURL.get().strip()
+
+        print(DOWNLOAD_LOCATION)
+        print(DOWNLOAD_LOCATION+"/Reel"+str(time.time())+".mp4")
+
+        # start scraping code using instascrape
+        myHeader = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.74 Safari/537.36 Edg/79.0.309.43",
+        "cookie":f'sessionid={SESSIONID};'}
+
+        # if the url matches reel urls
+        if re.match("https?:\/\/(?:www.)?instagram.com\/reel\/([^\/?#&]+).*",VIDEO_URL):
+            print("Reel",VIDEO_URL)
+
+            try:
+                getReelVideo(myHeader,VIDEO_URL,DOWNLOAD_LOCATION)
+            except FileNotFoundError :
+                messagebox.showwarning('Warning', DOWNLOAD_LOCATION+'   Invalid Path!')
+            except Exception as e:
+                messagebox.showwarning('Warning', 'An Error occurred while downloading, Check Your Details and Try again later..')
+                print("Error downloading Reel.."+ str(e))
+                
+
+        # if the url matches igtv urls
+        elif re.match("https?:\/\/(?:www.)?instagram.com\/tv\/([^\/?#&]+).*",VIDEO_URL):
+            print("IGTV",VIDEO_URL)
+
+            try:
+                getIGTVVideo(myHeader,VIDEO_URL,DOWNLOAD_LOCATION)
+            except FileNotFoundError :
+                messagebox.showwarning('Warning', DOWNLOAD_LOCATION+'   Invalid Path!')
+            except Exception as e:
+                messagebox.showwarning('Warning', 'An Error occurred while downloading, Check Your Details and Try again later..')
+                print("Error downloading IGTV.."+ str(e))
+                
+        # if the url matches post urls
+        elif re.match("((?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reel|tv)\/([^/?#&]+)).*",VIDEO_URL):
+            print("Post",VIDEO_URL)
+            # if the url is missing the https://www. prefix then add it to url
+            if not VIDEO_URL.startswith("https://www."):
+                VIDEO_URL = "https://www." + VIDEO_URL
+                print("Fixed_URL",VIDEO_URL)
+            try:
+                getPostVideo(myHeader,VIDEO_URL,DOWNLOAD_LOCATION)
+            except FileNotFoundError :
+                messagebox.showwarning('Warning', DOWNLOAD_LOCATION+'   Invalid Path!')
+            except Exception as e:
+                messagebox.showwarning('Warning', 'An Error occurred while downloading, Check Your Details and Try again later..')
+                print("Error downloading Post.."+ str(e))
+                
+        # if the url doesnt match an instagram video/post url, then display a messagebox        
+        else:
+            messagebox.showwarning('Warning', VIDEO_URL+'   Invalid URL!')
+                
     
+
+def getReelVideo(header,url,location):
+    reel = insta.Reel(url)
+    reel.scrape(headers=header)
+    reel.download(fp=location+"/Reel"+str(time.time())+".mp4")
+    messagebox.showinfo('Instagram Reel', "Reel Download Finished!")
+    
+def getIGTVVideo(header,url,location):
+    igtv = insta.IGTV(url)
+    igtv.scrape(headers=header)
+    igtv.download(fp=location+"/IGTV"+str(time.time())+".mp4")
+    messagebox.showinfo('Instagram IGTV', "IGTV Download Finished!")
+
+def getPostVideo(header,url,location):
+    post = insta.Post(url)
+    post.scrape(headers=header)
+    post.download(fp=location+"/Post"+str(time.time())+".mp4")
+    messagebox.showinfo('Instagram Post', "Post Download Finished!")
+
+
 
 
 
