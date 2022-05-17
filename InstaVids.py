@@ -144,6 +144,7 @@ def getPostVideo(header,url,location):
 window = Tk() # start GUI window
 
 window.title("InstaVids")
+window.iconbitmap(f"assets/icon.ico")
 
 # main canvas
 window.geometry("1000x600")
